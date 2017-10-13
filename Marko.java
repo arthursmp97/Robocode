@@ -94,17 +94,17 @@ public class Marko extends Robot {
 
     // onScannedRobot: What to do when you see another robot
     public void onScannedRobot(ScannedRobotEvent e) {
-        enemyBearing = e.getBearing();
+        double distance = e.getDistance();
         firing = true;
 
         // controla a potencia do tiro de acordo com a distancia do inimigo
-        if (enemyBearing >= 200) {
+        if (distance >= 600) {
             fire(1);
-        } else if (enemyBearing >= 100) {
+        } else if (distance >= 400) {
             fire(2);
-        } else if (enemyBearing >= 50) {
+        } else if (distance >= 300) {
             fire(5);
-        } else if (enemyBearing >= 20) {
+        } else if (distance >= 150) {
             fire(8);
         }
     }
