@@ -97,16 +97,7 @@ public class Marko extends Robot {
         double distance = e.getDistance();
         firing = true;
 
-        // controla a potencia do tiro de acordo com a distancia do inimigo
-        if (distance >= 600) {
-            fire(1);
-        } else if (distance >= 400) {
-            fire(2);
-        } else if (distance >= 300) {
-            fire(5);
-        } else if (distance >= 150) {
-            fire(8);
-        }
+        fire(getBulletPower(distance));
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
@@ -142,6 +133,19 @@ public class Marko extends Robot {
             return diff < 0 ? diff + 360 : diff - 360;
         } else {
             return diff;
+        }
+    }
+
+    private double getBulletPower(double distance) {
+        // controla a potencia do tiro de acordo com a distancia do inimigo
+        if (distance >= 600) {
+            return 1;
+        } else if (distance >= 450) {
+            return 2;
+        } else if (distance >= 300) {
+            return 5;
+        } else {
+            return 8;
         }
     }
 }
