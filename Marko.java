@@ -33,8 +33,6 @@ public class Marko extends Robot {
     }
 
     private void moveTank() {
-        out.println(getHeading());
-
         // quando começar o robo ira direto pro canto
         if (estado == "inicio") {
             turnToHeading(90);
@@ -124,8 +122,12 @@ public class Marko extends Robot {
     }
 
     public void onHitRobot(HitRobotEvent e){
-        // vira tambem quando bater em um robo
-        turnRight(90);
+        double angle = e.getBearing();
+
+        // vira tambem quando bater em um robo de frente:
+        if (angle < 45 && angle > -45) {
+            turnRight(90);
+        }
     }
 
     /* * * * Private Helper Funcs * * * */
