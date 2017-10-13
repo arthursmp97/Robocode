@@ -1,61 +1,137 @@
 package killbots;
 import robocode.*;
+import java.awt.Color;
 //import java.awt.Color;
 
 // API help : http://robocode.sourceforge.net/docs/robocode/robocode/Robot.html
-import java.util.*;
-import robocode.util.Utils;
 
 /**
  * Marko - a robot by Vinícius Garcia
  */
 public class Marko extends Robot {
-
-    private int WALL_DISTANCE = 40;
-
+    private boolean ra = false;
     private double enemyBearing = 180;
     private boolean firing = false;
+    private String estado = "inicio";
 
     /**
      * run: Marko's default behavior
      */
     public void run() {
         // setColors(Color.red,Color.blue,Color.green); // body,gun,radar
-
         // Robot main loop
+        setBodyColor(new Color(200, 200, 30));
+        setGunColor(new Color(45, 100, 0));
+        setRadarColor(new Color(0, 255, 100));
+        setBulletColor(new Color(255, 255, 100));
+        setScanColor(new Color(0, 255, 0));
+
         while(true) {
             moveTank();
             moveCannon();
         }
     }
 
-    private boolean turnToHeading(double heading) {
-        double tankHeading = getHeading();
+    private void moveTank() {
+        out.println(getHeading());
 
-        // If the angle is close enough already,
-        // we are done:
-        double a1 = Utils.normalAbsoluteAngleDegrees(heading), a2 = Utils.normalAbsoluteAngleDegrees(tankHeading);
-        boolean done = Utils.isNear(
-            Utils.normalAbsoluteAngleDegrees(heading),
-            Utils.normalAbsoluteAngleDegrees(tankHeading)
-        );
-
-        if (state == "aligning") {
-            // out.println("aligning");
-            // out.println("A1: " + a1 + " A2: " + a2 + " done: " + done);
-            // out.println("heading: " + heading + " tankHeading: " + tankHeading + " done: " + done);
+        // quando começar o robo ira direto pro canto
+        if (estado == "inicio") {
+            turnToHeading(90);
+            ahead(1000);
+            estado = "combate";
         }
 
-        if (done) {
-            return true;
-        } else {
-            turnRight(
-                turnAngle(tankHeading, heading)
-            );
-            return false;
+        // Make sure the tank is always ortogonal to the borders
+        if (getHeading() % 90 != 0) {
+            double round = Math.round(getHeading() / 90) * 90;
+            turnToHeading(round);
+        }
+
+        ahead(150);
+        turnGunRight(180);
+        turnGunLeft(180);
+    }
+
+    public void moveCannon() {
+    }
+
+    public void turnCannon(double heading) {
+        double angle = turnAngle(getGunHeading(), heading);
+        turnGunRight(angle);
+    }
+
+    public void turnToHeading(double heading) {
+        double angle = turnAngle(getHeading(), heading);
+
+        // Turn to the desired position:
+        turnRight(angle);
+    }
+
+    public void RevidarAtaque() {
+        if (ra) {
+            fire(10);
+            ra = false;
+            //Esse seria assim que eu tomar um tiro eu disparo
+        }
+    }
+    
+    public void anteciparAtaque() {
+    // Este método será para quando for chamado ele tente encontrar o robo
+    // assim que encontrar dispara imediatamente.
+    // Pode ficar a vontade em criar estrategias para tiro
+    // Seguinte pode ficar a vontade assim que o meu amigo finalizar
+    // eu te mando e mexe sempre da função Movecannon
+
+        while(true) {
+            if (firing) {
+                turnGunRight(enemyBearing);
+                firing = false;
+            } else {
+                turnGunRight(-90);
+            }
+        // turnGunRight(360);
+       }
+    }
+
+    // onScannedRobot: What to do when you see another robot
+    public void onScannedRobot(ScannedRobotEvent e) {
+        enemyBearing = e.getBearing();
+        firing = true;
+
+        // controla a potencia do tiro de acordo com a distancia do inimigo
+        if (enemyBearing >= 200) {
+            fire(1);
+        } else if (enemyBearing >= 100) {
+            fire(2);
+        } else if (enemyBearing >= 50) {
+            fire(5);
+        } else if (enemyBearing >= 20) {
+            fire(8);
         }
     }
 
+    public void onHitByBullet(HitByBulletEvent e) {
+        // corre quando atingido
+        ahead(1000);
+        ra = true;
+        // turnRight(90);
+    }
+
+    public void onHitWall(HitWallEvent e) {
+        // vira 90 graus ao bater na parede
+        turnRight(90);
+    }
+
+    public void onHitRobot(HitRobotEvent e){
+        // vira tambem quando bater em um robo
+        turnRight(90);
+    }
+
+    /* * * * Private Helper Funcs * * * */
+    
+    // Calcula o menor angulo necessário para virar
+    // para a direita do angulo `from` para `to`
     private double turnAngle(double from, double to) {
         double diff = (to % 360) - (from % 360);
 
@@ -65,189 +141,5 @@ public class Marko extends Robot {
         } else {
             return diff;
         }
-    }
-
-    private void turnTo(double x, double y) {
-    }
-
-    private void goTo(double x, double y) {
-    }
-
-    private double xDist() {
-        double x = getX();
-        double width = getBattleFieldWidth();
-        double relX = x/width;
-
-        return relX > 0.5 ? width-x : x;
-    }
-
-    private double yDist() {
-        double y = getY();
-        double height = getBattleFieldHeight();
-        double relY = y/height;
-
-        return relY > 0.5 ? height-y : y;
-    }
-
-    String wall = "";
-    private boolean moveToWall() {
-        out.println("moving to wall");
-        double x = getX(), y = getY();
-        double height = getBattleFieldHeight();
-        double width = getBattleFieldWidth();
-        double relX = x/width, relY = y/height;
-
-        // Movement vector:
-        double xi, yi;
-
-        // Calculate xi and yi
-        if (relX > 0.5) xi = 1; else xi = -1;
-        if (relY > 0.5) yi = 1; else yi = -1;
-
-        double xDist = relX > 0.5 ? width-x : x;
-        double yDist = relY > 0.5 ? height-y : y;
-
-        // out.println("x, y: " + x + ", " + y);
-        if (xDist < WALL_DISTANCE) {
-            // out.println("xi: " + xi + " relX " + relX);
-            // out.println("yi: " + yi + " relY " + relY);
-            wall = yi == 1 ? "right" : "left";
-            // out.println("Wall is: " + wall);
-            return true;
-        }
-
-        if (yDist < WALL_DISTANCE) {
-            // out.println("xi: " + xi + " relX " + relX);
-            // out.println("yi: " + yi + " relY " + relY);
-            wall = xi == 1 ? "top" : "bottom";
-            // out.println("Wall is: " + wall);
-            return true;
-        }
-
-        if (xDist < yDist) {
-            turnToHeading(xi * 90);
-            ahead(xDist - WALL_DISTANCE + 10);
-        } else {
-            turnToHeading(90 - xi * 90);
-            ahead(yDist - WALL_DISTANCE + 10);
-        }
-
-        return false;
-    }
-
-    private boolean circulate() {
-        double x = getX(), y = getY();
-        double height = getBattleFieldHeight();
-        double width = getBattleFieldWidth();
-
-        switch (wall) {
-            case "top":
-                if (x < WALL_DISTANCE) {
-                    wall = "left";
-                    return true;
-                } else {
-                    ahead(200 - WALL_DISTANCE + 10);
-                    return false;
-                }
-            case "bottom":
-                if (width-x < WALL_DISTANCE) {
-                    wall = "right";
-                    return true;
-                } else {
-                    ahead(200 - WALL_DISTANCE + 10);
-                    return false;
-                }
-            case "left":
-                if (y < WALL_DISTANCE) {
-                    wall = "bottom";
-                    return true;
-                } else {
-                    ahead(200 - WALL_DISTANCE + 10);
-                    return false;
-                }
-            case "right":
-                if (height-y < WALL_DISTANCE) {
-                    wall = "top";
-                    return true;
-                } else {
-                    ahead(200 - WALL_DISTANCE + 10);
-                    return false;
-                }
-            default:
-                return true;
-        }
-    }
-
-    private double desiredAngle;
-    private String state = "start";
-    private void moveTank() {
-
-        if (state == "start") {
-            out.println("Starting...");
-            state = "toWall";
-        }
-
-        if (state == "toWall" && moveToWall()) {
-            out.println("Got on wall");
-
-            desiredAngle = getHeading() - 90;
-            state = "aligning";
-        }
-
-
-        if (state == "aligning" && turnToHeading(desiredAngle)) {
-            out.println("Aligned to " + wall + " wall");
-
-            state = "circulate";
-        }
-
-        if (state == "circulate" && circulate()) {
-            out.println("On edge");
-
-            desiredAngle = getHeading() - 90;
-            // out.println("desiredAngle: " + desiredAngle + " wall: " + wall);
-            // out.println("xDist(): " + xDist() + " yDist(): " + yDist());
-            state = "aligning";
-        }
-    }
-
-    private void moveCannon() {
-        if (firing) {
-            turnGunRight(enemyBearing);
-            firing = false;
-        } else {
-            turnGunRight(-90);
-        }
-        // turnGunRight(360);
-    }
-
-    /**
-     * onScannedRobot: What to do when you see another robot
-     */
-    public void onScannedRobot(ScannedRobotEvent e) {
-        enemyBearing = e.getBearing();
-        firing = true;
-        fire(1);
-    }
-
-    /**
-     * onHitByBullet: What to do when you're hit by a bullet
-     */
-    public void onHitByBullet(HitByBulletEvent e) {
-        // Replace the next line with any behavior you would like
-        // ahead(80);
-        // turnRight(90);
-    }
-
-    /**
-     * onHitWall: What to do when you hit a wall
-     */
-    public void onHitWall(HitWallEvent e) {
-        double angle = e.getBearing();
-        desiredAngle = getHeading() - 90;
-        state = "aligning";
-
-        // Replace the next line with any behavior you would like
-        back(20);
     }
 }
